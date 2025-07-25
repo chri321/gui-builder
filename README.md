@@ -1,6 +1,6 @@
 
 
-#  <img src="D:\Desktop\gui-builder\images\icon.png" alt="icon"  />
+#  <img src="icon.png" alt="icon"  />
 
 #   GUI Builder VSCode 插件
 
