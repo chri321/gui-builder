@@ -80,18 +80,14 @@ const generateProjectConfig = (components, projectName, resolution) => {
 exports.generateProjectConfig = generateProjectConfig;
 const saveProject = (components, projectName, projectDir, resolution) => {
     try {
-        console.log('开始保存项目...', { projectName, projectDir, componentsCount: components.length });
         const config = (0, exports.generateProjectConfig)(components, projectName, resolution);
         const configStr = JSON.stringify(config, null, 2);
-        console.log('生成的配置:', configStr);
-        console.log('使用 VSCode API 保存文件...');
         const message = {
             command: 'saveProjectFile',
             fileName: `${projectName || 'gui-project'}.json`,
             content: configStr,
             projectDir: projectDir
         };
-        console.log('准备发送的消息:', message);
         (0, vscodeApi_1.postMessage)(message);
         // 添加用户反馈
         const feedbackDiv = document.createElement('div');
@@ -117,7 +113,6 @@ const saveProject = (components, projectName, projectDir, resolution) => {
         }, 3000);
     }
     catch (error) {
-        console.error('保存项目时出错:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
         alert(`保存项目失败: ${errorMessage}`);
     }

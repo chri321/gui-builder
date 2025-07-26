@@ -47,11 +47,86 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
+// 新增：WebviewViewProvider 实现
+class GuiBuilderViewProvider {
+    constructor(_extensionUri) {
+        this._extensionUri = _extensionUri;
+    }
+    resolveWebviewView(webviewView, context, _token) {
+        webviewView.webview.options = {
+            enableScripts: true
+        };
+        webviewView.webview.html = `
+      <html>
+        <head>
+          <style>
+            .gui-btn {
+              width: 90%;
+              background: #0E639C;
+              color: #fff;
+              border: none;
+              border-radius: 4px;
+              font-size: 12px;
+              padding: 7px 0;
+              margin-bottom: 7px;
+              cursor: pointer;
+              font-family: 'Microsoft YaHei', 微软雅黑, sans-serif;
+              transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+              display: block;
+              outline: none;
+            }
+            .gui-btn:hover, .gui-btn:focus {
+              background: #1177bb;
+              box-shadow: 0 2px 8px 0 rgba(14,99,156,0.15);
+            }
+            .gui-btn:active {
+              background: #0E639C;
+              box-shadow: 0 1px 4px 0 rgba(14,99,156,0.10);
+            }
+          </style>
+          </style>
+        </head>
+        <body style="padding: 10px 10px; font-family: 'Microsoft YaHei', 微软雅黑, sans-serif; background: var(--vscode-sideBar-background);">
+          <div style="color: #bfc7d5; font-size: 12px; margin-bottom: 8px; line-height: 1.5;">
+            您尚未打开任何 GUI Builder 项目。<br/><br/>
+            您可以打开一个已有的 GUI Builder 项目（包含 <span style="color:#7ecbe7;">project.json</span> 文件的文件夹）。
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <button id="openProjectBtn" class="gui-btn">
+              选择项目文件夹
+            </button>
+            <div style="color: #bfc7d5; font-size: 12px; margin-bottom: 7px; line-height: 1.5; width: 100%; text-align: left;">
+              您也可以创建一个新的 GUI Builder 项目。
+            </div>
+            <button id="createProjectBtn" class="gui-btn">
+              新建项目
+            </button>
+          </div>
+          <script>
+            const vscode = acquireVsCodeApi();
+            document.getElementById('createProjectBtn').onclick = () => {
+              vscode.postMessage({ command: 'createProject' });
+            };
+            document.getElementById('openProjectBtn').onclick = () => {
+              vscode.postMessage({ command: 'openProject' });
+            };
+          </script>
+        </body>
+      </html>
+    `;
+        webviewView.webview.onDidReceiveMessage(message => {
+            if (message.command === 'createProject') {
+                vscode.commands.executeCommand('gui-builder.openEditor');
+            }
+        });
+    }
+}
+GuiBuilderViewProvider.viewType = 'guiBuilderView';
 function activate(context) {
-    console.log('GUI Builder 扩展已激活');
+    // 注册侧边栏视图 provider
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider(GuiBuilderViewProvider.viewType, new GuiBuilderViewProvider(context.extensionUri)));
     const disposable = vscode.commands.registerCommand('gui-builder.openEditor', () => {
         var _a, _b;
-        console.log('创建 GUI Builder webview 面板');
         const panel = vscode.window.createWebviewPanel('guiBuilder', 'GUI Builder', vscode.ViewColumn.One, {
             enableScripts: true,
             retainContextWhenHidden: true, // 保持上下文，避免重新加载
@@ -71,17 +146,7 @@ function activate(context) {
         html = html.replace('</head>', `<script>window.vscodeWorkspacePath = "${workspaceFolder.replace(/\\/g, '\\\\')}";</script></head>`);
         panel.webview.html = html;
         // 处理来自 Webview 的消息
-        console.log('注册消息处理器');
-        // 发送测试消息到 webview
-        setTimeout(() => {
-            console.log('发送测试消息到 webview');
-            panel.webview.postMessage({
-                command: 'test',
-                message: '扩展已准备就绪'
-            });
-        }, 1000);
         panel.webview.onDidReceiveMessage((message) => __awaiter(this, void 0, void 0, function* () {
-            console.log('VSCode 扩展收到消息:', message);
             switch (message.command) {
                 case 'selectDirectory':
                     try {
@@ -104,17 +169,14 @@ function activate(context) {
                     break;
                 case 'createProjectFolder':
                     try {
-                        console.log('收到创建项目文件夹消息:', message);
                         const { projectName, fileName, content, baseDir } = message;
                         if (!projectName || !fileName || !content || !baseDir) {
                             throw new Error('缺少必要的参数: projectName, fileName, content, 或 baseDir');
                         }
                         // 创建项目文件夹路径
                         const projectFolderPath = path.join(baseDir, projectName);
-                        console.log('项目文件夹路径:', projectFolderPath);
                         // 检查项目文件夹是否已存在
                         if (fs.existsSync(projectFolderPath)) {
-                            console.log('项目文件夹已存在，跳过创建:', projectFolderPath);
                             // 发送成功消息回webview，但不切换工作目录
                             panel.webview.postMessage({
                                 command: 'projectFolderCreated',
@@ -126,13 +188,10 @@ function activate(context) {
                             return;
                         }
                         // 创建项目文件夹
-                        console.log('创建项目文件夹:', projectFolderPath);
                         fs.mkdirSync(projectFolderPath, { recursive: true });
                         // 在项目文件夹内创建 JSON 文件
                         const filePath = path.join(projectFolderPath, fileName);
-                        console.log('项目文件路径:', filePath);
                         // 写入初始配置文件
-                        console.log('写入项目文件...');
                         fs.writeFileSync(filePath, content, 'utf8');
                         // 显示成功消息
                         vscode.window.showInformationMessage(` 项目文件夹已创建: ${projectName}`);
@@ -149,7 +208,6 @@ function activate(context) {
                             else {
                                 // 方法2：如果没有工作区，则添加新的工作区
                                 yield vscode.workspace.updateWorkspaceFolders(0, null, { uri: projectFolderUri, name: projectName });
-                                console.log('项目文件夹已添加到工作区:', projectFolderPath);
                             }
                             // 弹出保存工作区提示
                             vscode.window.showInformationMessage(`项目文件夹已添加到工作区，建议立即保存工作区以避免丢失。`, '保存工作区').then(selection => {
@@ -164,7 +222,6 @@ function activate(context) {
                             try {
                                 const projectFolderUri = vscode.Uri.file(projectFolderPath);
                                 yield vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0, null, { uri: projectFolderUri, name: projectName });
-                                console.log('项目文件夹已添加到工作区:', projectFolderPath);
                             }
                             catch (addError) {
                                 console.error('添加文件夹到工作区失败:', addError);
@@ -179,9 +236,8 @@ function activate(context) {
                         });
                     }
                     catch (error) {
-                        console.error('创建项目文件夹失败:', error);
                         const errorMessage = error instanceof Error ? error.message : String(error);
-                        vscode.window.showErrorMessage(` 创建项目文件夹失败: ${errorMessage}`);
+                        vscode.window.showErrorMessage(`创建项目文件夹失败: ${errorMessage}`);
                         // 发送错误消息回webview
                         panel.webview.postMessage({
                             command: 'projectFolderCreated',
@@ -192,21 +248,16 @@ function activate(context) {
                     break;
                 case 'saveProjectFile':
                     try {
-                        console.log('收到保存项目文件消息:', message);
-                        console.log('消息内容:', JSON.stringify(message, null, 2));
                         const { fileName, content, projectDir } = message;
                         if (!fileName || !content || !projectDir) {
                             throw new Error('缺少必要的参数: fileName, content, 或 projectDir');
                         }
                         const filePath = path.join(projectDir, fileName);
-                        console.log('文件路径:', filePath);
                         // 确保项目目录存在
                         if (!fs.existsSync(projectDir)) {
-                            console.log('创建项目目录:', projectDir);
                             fs.mkdirSync(projectDir, { recursive: true });
                         }
                         // 写入配置文件
-                        console.log('写入文件内容...');
                         fs.writeFileSync(filePath, content, 'utf8');
                         // 显示成功消息
                         vscode.window.showInformationMessage(`✅ 项目文件已保存: ${fileName}`);
@@ -218,9 +269,8 @@ function activate(context) {
                         });
                     }
                     catch (error) {
-                        console.error('保存项目文件失败:', error);
                         const errorMessage = error instanceof Error ? error.message : String(error);
-                        vscode.window.showErrorMessage(`❌ 保存项目文件失败: ${errorMessage}`);
+                        vscode.window.showErrorMessage(`保存项目文件失败: ${errorMessage}`);
                         // 发送错误消息回webview
                         panel.webview.postMessage({
                             command: 'projectSaved',

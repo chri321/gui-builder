@@ -27,18 +27,11 @@ const Canvas = ({ width, height, projectName, projectDir }) => {
     (0, react_1.useEffect)(() => {
         const handleMessage = (event) => {
             const message = event.data;
-            console.log('Canvas 收到消息:', message);
-            if (message.command === 'test') {
-                console.log('收到扩展测试消息:', message.message);
-            }
-            else if (message.command === 'projectSaved') {
-                console.log('收到 projectSaved 消息:', message);
+            if (message.command === 'projectSaved') {
                 if (message.success) {
-                    console.log('项目保存成功:', message.filePath);
                     // 可以在这里添加成功反馈
                 }
                 else {
-                    console.error('项目保存失败:', message.error);
                     // 可以在这里添加错误反馈
                 }
             }
@@ -88,14 +81,8 @@ const Canvas = ({ width, height, projectName, projectDir }) => {
         e.dataTransfer.setData('component-id', component.id);
     };
     const handleSaveProject = () => {
-        console.log('handleSaveProject 被调用');
-        console.log('项目信息:', { projectName, projectDir, componentsCount: components.length });
         if (projectName && projectDir) {
-            console.log('调用 saveProject 函数...');
             (0, projectConfig_1.saveProject)(components, projectName, projectDir, { width, height });
-        }
-        else {
-            console.error('缺少项目信息:', { projectName, projectDir });
         }
     };
     return ((0, jsx_runtime_1.jsxs)("div", { style: { position: 'relative' }, children: [projectName && projectDir && ((0, jsx_runtime_1.jsx)("button", { onClick: handleSaveProject, style: {

@@ -14,16 +14,31 @@
   "engines": {
     "vscode": "^1.80.0"
   },
-  "activationEvents": [
-    "onCommand:gui-builder.openEditor"
-  ],
   "contributes": {
     "commands": [
       {
         "command": "gui-builder.openEditor",
         "title": "GUI Builder: Open Editor"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "gui-builder",
+          "title": "GUI Builder",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "gui-builder": [
+        {
+          "id": "guiBuilderView",
+          "name": "GUI Builder",
+           "type": "webview"
+        }
+      ]
+    }
   },
   "devDependencies": {
     "@types/react": "^19.1.8",

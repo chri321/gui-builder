@@ -19,19 +19,13 @@ const getVSCodeApi = () => {
 exports.getVSCodeApi = getVSCodeApi;
 const postMessage = (message) => {
     const vscode = (0, exports.getVSCodeApi)();
-    console.log('postMessage 调用:', message);
-    console.log('VSCode API 状态:', vscode ? '可用' : '不可用');
     if (vscode) {
         try {
             vscode.postMessage(message);
-            console.log('消息已发送到 VSCode 扩展');
         }
         catch (error) {
             console.error('发送消息到 VSCode 扩展失败:', error);
         }
-    }
-    else {
-        console.warn('VSCode API 不可用，无法发送消息');
     }
 };
 exports.postMessage = postMessage;

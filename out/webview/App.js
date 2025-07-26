@@ -205,7 +205,7 @@ const App = () => {
                                     vscode.postMessage({
                                         command: 'createProjectFolder',
                                         projectName: projectName,
-                                        fileName: `${projectName}.uiproj`,
+                                        fileName: `${projectName}.json`,
                                         content: configStr,
                                         baseDir: projectDir
                                     });

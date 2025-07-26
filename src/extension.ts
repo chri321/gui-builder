@@ -2,7 +2,93 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
+// 新增：WebviewViewProvider 实现
+class GuiBuilderViewProvider implements vscode.WebviewViewProvider {
+  public static readonly viewType = 'guiBuilderView';
+  constructor(private readonly _extensionUri: vscode.Uri) {}
+
+  resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken
+  ) {
+    webviewView.webview.options = {
+      enableScripts: true
+    };
+    webviewView.webview.html = `
+      <html>
+        <head>
+          <style>
+            .gui-btn {
+              width: 90%;
+              background: #0E639C;
+              color: #fff;
+              border: none;
+              border-radius: 4px;
+              font-size: 12px;
+              padding: 7px 0;
+              margin-bottom: 7px;
+              cursor: pointer;
+              font-family: 'Microsoft YaHei', 微软雅黑, sans-serif;
+              transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+              display: block;
+              outline: none;
+            }
+            .gui-btn:hover, .gui-btn:focus {
+              background: #1177bb;
+              box-shadow: 0 2px 8px 0 rgba(14,99,156,0.15);
+            }
+            .gui-btn:active {
+              background: #0E639C;
+              box-shadow: 0 1px 4px 0 rgba(14,99,156,0.10);
+            }
+          </style>
+          </style>
+        </head>
+        <body style="padding: 10px 10px; font-family: 'Microsoft YaHei', 微软雅黑, sans-serif; background: var(--vscode-sideBar-background);">
+          <div style="color: #bfc7d5; font-size: 12px; margin-bottom: 8px; line-height: 1.5;">
+            您尚未打开任何 GUI Builder 项目。<br/><br/>
+            您可以打开一个已有的 GUI Builder 项目（包含 <span style="color:#7ecbe7;">project.json</span> 文件的文件夹）。
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <button id="openProjectBtn" class="gui-btn">
+              选择项目文件夹
+            </button>
+            <div style="color: #bfc7d5; font-size: 12px; margin-bottom: 7px; line-height: 1.5; width: 100%; text-align: left;">
+              您也可以创建一个新的 GUI Builder 项目。
+            </div>
+            <button id="createProjectBtn" class="gui-btn">
+              新建项目
+            </button>
+          </div>
+          <script>
+            const vscode = acquireVsCodeApi();
+            document.getElementById('createProjectBtn').onclick = () => {
+              vscode.postMessage({ command: 'createProject' });
+            };
+            document.getElementById('openProjectBtn').onclick = () => {
+              vscode.postMessage({ command: 'openProject' });
+            };
+          </script>
+        </body>
+      </html>
+    `;
+    webviewView.webview.onDidReceiveMessage(message => {
+      if (message.command === 'createProject') {
+        vscode.commands.executeCommand('gui-builder.openEditor');
+      }
+    });
+  }
+}
+
 export function activate(context: vscode.ExtensionContext) {
+  // 注册侧边栏视图 provider
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      GuiBuilderViewProvider.viewType,
+      new GuiBuilderViewProvider(context.extensionUri)
+    )
+  );
   const disposable = vscode.commands.registerCommand('gui-builder.openEditor', () => {
     const panel = vscode.window.createWebviewPanel(
       'guiBuilder',
