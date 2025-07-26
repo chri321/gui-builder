@@ -16,6 +16,9 @@ const jsx_runtime_1 = require("react/jsx-runtime");
 const react_1 = require("react");
 const ComponentPalette_1 = __importDefault(require("./components/ComponentPalette"));
 const Canvas_1 = __importDefault(require("./editor/Canvas"));
+const PropertyPanel_1 = __importDefault(require("./components/PropertyPanel"));
+const ComponentTree_1 = __importDefault(require("./components/ComponentTree"));
+const Toolbar_1 = __importDefault(require("./components/Toolbar"));
 const resolutions = [
     { label: '240x240', width: 240, height: 240 },
     { label: '390x390', width: 390, height: 390 },
@@ -55,6 +58,10 @@ const App = () => {
         }
         return '';
     });
+    // 新增状态管理
+    const [selectedComponent, setSelectedComponent] = (0, react_1.useState)(null);
+    const [components, setComponents] = (0, react_1.useState)([]);
+    const [showCode, setShowCode] = (0, react_1.useState)(false);
     // 保存状态到 VSCode
     const saveState = (newState) => {
         const vscode = (0, vscodeApi_1.getVSCodeApi)();
@@ -135,6 +142,15 @@ const App = () => {
         else {
             alert('目录选择功能需要 VSCode 环境');
         }
+    };
+    // 处理组件选择
+    const handleComponentSelect = (component) => {
+        setSelectedComponent(component);
+    };
+    // 处理组件更新
+    const handleComponentUpdate = (updatedComponent) => {
+        setComponents(prev => prev.map(c => c.id === updatedComponent.id ? updatedComponent : c));
+        setSelectedComponent(updatedComponent);
     };
     if (!resolution) {
         const selected = resolutions.find(r => r.label === selectLabel) || resolutions[0];
@@ -219,6 +235,6 @@ const App = () => {
                             }
                         }), children: "\u521B\u5EFA\u753B\u5E03" })] }) }));
     }
-    return ((0, jsx_runtime_1.jsxs)("div", { style: { display: 'flex', height: '100vh' }, children: [(0, jsx_runtime_1.jsx)(ComponentPalette_1.default, {}), (0, jsx_runtime_1.jsxs)("div", { style: { flex: 1, display: 'flex', flexDirection: 'column' }, children: [(0, jsx_runtime_1.jsxs)("div", { style: { padding: 12, borderBottom: '1px solid #eee', background: '#f7f7f7' }, children: [(0, jsx_runtime_1.jsx)("span", { children: "\u9879\u76EE\u540D\u79F0\uFF1A" }), (0, jsx_runtime_1.jsx)("span", { style: { marginRight: 24, fontWeight: 500 }, children: projectName }), (0, jsx_runtime_1.jsx)("span", { children: "\u9879\u76EE\u76EE\u5F55\uFF1A" }), (0, jsx_runtime_1.jsx)("span", { style: { marginRight: 24, fontWeight: 500 }, children: projectDir }), (0, jsx_runtime_1.jsx)("span", { children: "\u5C4F\u5E55\u5206\u8FA8\u7387\uFF1A" }), (0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, fontWeight: 500 }, children: [resolution.label, "\uFF08", resolution.width, " x ", resolution.height, "\uFF09"] })] }), (0, jsx_runtime_1.jsx)("div", { style: { flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#e5e7ea' }, children: (0, jsx_runtime_1.jsx)(Canvas_1.default, { width: resolution.width, height: resolution.height, projectName: projectName, projectDir: projectDir }) })] })] }));
+    return ((0, jsx_runtime_1.jsxs)("div", { style: { display: 'flex', height: '100vh', flexDirection: 'column' }, children: [(0, jsx_runtime_1.jsx)(Toolbar_1.default, { projectName: projectName, showCode: showCode, onShowCodeChange: setShowCode }), (0, jsx_runtime_1.jsxs)("div", { style: { display: 'flex', flex: 1, overflow: 'hidden' }, children: [(0, jsx_runtime_1.jsxs)("div", { style: { display: 'flex', flexDirection: 'column', width: 280, borderRight: '1px solid #e0e0e0' }, children: [(0, jsx_runtime_1.jsx)(ComponentPalette_1.default, {}), (0, jsx_runtime_1.jsx)(ComponentTree_1.default, { components: components, selectedComponent: selectedComponent, onComponentSelect: handleComponentSelect })] }), (0, jsx_runtime_1.jsx)("div", { style: { flex: 1, display: 'flex', flexDirection: 'column', background: '#f5f5f5' }, children: (0, jsx_runtime_1.jsx)(Canvas_1.default, { width: resolution.width, height: resolution.height, projectName: projectName, projectDir: projectDir, components: components, setComponents: setComponents, selectedComponent: selectedComponent, onComponentSelect: handleComponentSelect }) }), (0, jsx_runtime_1.jsx)(PropertyPanel_1.default, { selectedComponent: selectedComponent, onComponentUpdate: handleComponentUpdate, showCode: showCode })] })] }));
 };
 exports.default = App;

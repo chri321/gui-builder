@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import ComponentPalette from './components/ComponentPalette';
 import Canvas from './editor/Canvas';
+import PropertyPanel from './components/PropertyPanel';
+import ComponentTree from './components/ComponentTree';
+import Toolbar from './components/Toolbar';
 
 type Resolution = { label: string; width: number; height: number };
 
@@ -47,6 +50,38 @@ const App: React.FC = () => {
     }
     return '';
   });
+
+  // 新增状态管理
+  const [selectedComponent, setSelectedComponent] = useState<any>(null);
+  const [components, setComponents] = useState<any[]>([]);
+  
+  // 左侧面板宽度状态
+  const [leftPanelWidth, setLeftPanelWidth] = useState(() => {
+    // 从 VSCode 状态中恢复左侧面板宽度
+    const vscode = getVSCodeApi();
+    if (vscode) {
+      const state = vscode.getState();
+      return state?.leftPanelWidth || 200; // 从280减少到200
+    }
+    return 200; // 从280减少到200
+  });
+  
+  // 组件树高度状态
+  const [componentTreeHeight, setComponentTreeHeight] = useState(() => {
+    // 从 VSCode 状态中恢复组件树高度
+    const vscode = getVSCodeApi();
+    if (vscode) {
+      const state = vscode.getState();
+      return state?.componentTreeHeight || 200;
+    }
+    return 200;
+  });
+  
+  // 拖拽调整宽度状态
+  const [isResizing, setIsResizing] = useState(false);
+  
+  // 拖拽调整组件树高度状态
+  const [isResizingTree, setIsResizingTree] = useState(false);
 
   // 保存状态到 VSCode
   const saveState = (newState: any) => {
@@ -135,6 +170,99 @@ const App: React.FC = () => {
       alert('目录选择功能需要 VSCode 环境');
     }
   };
+
+  // 处理组件选择
+  const handleComponentSelect = (component: any) => {
+    setSelectedComponent(component);
+  };
+
+  // 处理组件更新
+  const handleComponentUpdate = (updatedComponent: any) => {
+    setComponents(prev => prev.map(c => 
+      c.id === updatedComponent.id ? updatedComponent : c
+    ));
+    setSelectedComponent(updatedComponent);
+  };
+  
+  // 处理左侧面板宽度调整
+  const handleResizeStart = (e: React.MouseEvent) => {
+    setIsResizing(true);
+    e.preventDefault();
+  };
+  
+  const handleResizeMove = (e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    const newWidth = e.clientX;
+    const minWidth = 150; // 减少最小宽度
+    const maxWidth = 500;
+    
+    if (newWidth >= minWidth && newWidth <= maxWidth) {
+      setLeftPanelWidth(newWidth);
+      saveState({ leftPanelWidth: newWidth });
+    }
+  };
+  
+  const handleResizeEnd = () => {
+    setIsResizing(false);
+  };
+  
+  // 处理组件树高度调整
+  const handleTreeResizeStart = (e: React.MouseEvent) => {
+    setIsResizingTree(true);
+    e.preventDefault();
+  };
+  
+  const handleTreeResizeMove = (e: MouseEvent) => {
+    if (!isResizingTree) return;
+    
+    const container = document.querySelector('.left-panel') as HTMLElement;
+    if (!container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const totalHeight = containerRect.height;
+    const mouseY = e.clientY - containerRect.top;
+    
+    // 计算组件树的高度：总高度减去鼠标位置
+    const newHeight = totalHeight - mouseY;
+    const minHeight = 100;
+    const maxHeight = totalHeight - 80; // 减少组件库最小空间到80px
+    
+    if (newHeight >= minHeight && newHeight <= maxHeight) {
+      setComponentTreeHeight(newHeight);
+      saveState({ componentTreeHeight: newHeight });
+    }
+  };
+  
+  const handleTreeResizeEnd = () => {
+    setIsResizingTree(false);
+  };
+  
+  // 监听鼠标移动和释放事件
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleResizeMove);
+      document.addEventListener('mouseup', handleResizeEnd);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleResizeMove);
+        document.removeEventListener('mouseup', handleResizeEnd);
+      };
+    }
+  }, [isResizing]);
+  
+  // 监听组件树高度调整事件
+  useEffect(() => {
+    if (isResizingTree) {
+      document.addEventListener('mousemove', handleTreeResizeMove);
+      document.addEventListener('mouseup', handleTreeResizeEnd);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleTreeResizeMove);
+        document.removeEventListener('mouseup', handleTreeResizeEnd);
+      };
+    }
+  }, [isResizingTree]);
 
   if (!resolution) {
     const selected = resolutions.find(r => r.label === selectLabel) || resolutions[0];
@@ -300,25 +428,87 @@ const App: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
-      <ComponentPalette />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: 12, borderBottom: '1px solid #eee', background: '#f7f7f7' }}>
-          <span>项目名称：</span>
-          <span style={{ marginRight: 24, fontWeight: 500 }}>{projectName}</span>
-          <span>项目目录：</span>
-          <span style={{ marginRight: 24, fontWeight: 500 }}>{projectDir}</span>
-          <span>屏幕分辨率：</span>
-          <span style={{ marginLeft: 8, fontWeight: 500 }}>{resolution.label}（{resolution.width} x {resolution.height}）</span>
+         <div style={{ 
+       display: 'flex', 
+       height: '100vh', 
+       flexDirection: 'column',
+       userSelect: (isResizing || isResizingTree) ? 'none' : 'auto'
+     }}>
+      {/* 顶部工具栏 */}
+      <Toolbar 
+        projectName={projectName}
+      />
+      
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        {/* 左侧面板 */}
+        <div 
+          className="left-panel"
+          style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            width: leftPanelWidth, 
+            borderRight: '1px solid #e0e0e0',
+            position: 'relative'
+          }}
+        >
+          {/* 组件库 */}
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <ComponentPalette />
+          </div>
+          
+          {/* 拖拽分隔线 */}
+          <div
+            style={{
+              height: '4px',
+              background: isResizingTree ? '#2196f3' : '#e0e0e0',
+              cursor: 'row-resize',
+              position: 'relative',
+              zIndex: 10
+            }}
+            onMouseDown={handleTreeResizeStart}
+          />
+          
+          {/* 组件树 */}
+          <div style={{ height: componentTreeHeight, minHeight: 0 }}>
+            <ComponentTree 
+              components={components}
+              selectedComponent={selectedComponent}
+              onComponentSelect={handleComponentSelect}
+            />
+          </div>
         </div>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#e5e7ea' }}>
+        
+        {/* 拖拽分隔线 */}
+        <div
+          style={{
+            width: '4px',
+            background: isResizing ? '#2196f3' : '#e0e0e0',
+            cursor: 'col-resize',
+            position: 'relative',
+            zIndex: 10
+          }}
+          onMouseDown={handleResizeStart}
+        />
+        
+        {/* 中间画布区域 */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f5f5f5' }}>
           <Canvas 
             width={resolution.width} 
             height={resolution.height} 
             projectName={projectName}
             projectDir={projectDir}
+            components={components}
+            setComponents={setComponents}
+            selectedComponent={selectedComponent}
+            onComponentSelect={handleComponentSelect}
           />
         </div>
+        
+        {/* 右侧属性面板 */}
+        <PropertyPanel 
+          selectedComponent={selectedComponent}
+          onComponentUpdate={handleComponentUpdate}
+        />
       </div>
     </div>
   );

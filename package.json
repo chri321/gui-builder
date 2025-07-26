@@ -35,7 +35,7 @@
         {
           "id": "guiBuilderView",
           "name": "GUI Builder",
-           "type": "webview"
+          "type": "webview"
         }
       ]
     }
@@ -49,6 +49,7 @@
     "style-loader": "^4.0.0",
     "ts-loader": "^9.5.2",
     "typescript": "^5.8.3",
+    "vite-plugin-svgr": "^4.3.0",
     "webpack": "^5.100.2",
     "webpack-cli": "^6.0.1"
   },

@@ -1,58 +1,67 @@
-import React, { useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-const DraggableBox: React.FC = () => {
-  const boxRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState({ x: 100, y: 100 });
-  const [dragging, setDragging] = useState(false);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
+const DraggableBox = () => {
+  const [position, setPosition] = useState({ x: 100, y: 100 });
+  const [isDragging, setIsDragging] = useState(false);
+  const offsetRef = useRef({ x: 0, y: 0 });
 
-  const onMouseDown = (e: React.MouseEvent) => {
-    setDragging(true);
-    setOffset({
-      x: e.clientX - pos.x,
-      y: e.clientY - pos.y,
-    });
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    offsetRef.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    };
   };
 
-  const onMouseMove = (e: React.MouseEvent) => {
-    if (!dragging) return;
-    setPos({
-      x: e.clientX - offset.x,
-      y: e.clientY - offset.y,
-    });
-  };
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      
+      setPosition({
+        x: e.clientX - offsetRef.current.x,
+        y: e.clientY - offsetRef.current.y
+      });
+    };
 
-  const onMouseUp = () => {
-    setDragging(false);
-  };
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
 
   return (
-    <div
-      ref={boxRef}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseUp}
-      style={{
-        position: 'absolute',
-        left: pos.x,
-        top: pos.y,
-        width: 120,
-        height: 60,
-        background: dragging ? '#69f' : '#ccc',
-        color: '#222',
-        cursor: 'move',
-        userSelect: 'none',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 8,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-      }}
+    <div style={{
+      position: 'absolute',
+      left: position.x,
+      top: position.y,
+      width: 120,
+      height: 80,
+      background: isDragging ? '#4a9cff' : '#f0f0f0',
+      cursor: 'move',
+      userSelect: 'none',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 8,
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+      border: '2px solid #d0d0d0',
+      transition: 'background 0.2s ease',
+      zIndex: isDragging ? 10 : 1
+    }}
+    onMouseDown={handleMouseDown}
     >
-      拖拽我
+      {isDragging ? '释放鼠标放置' : '拖拽我'}
     </div>
   );
 };
 
-export default DraggableBox; 
+export default DraggableBox;
