@@ -6,8 +6,9 @@ const components = [
 ];
 
 const ComponentPalette: React.FC = () => {
-  const onDragStart = (e: React.DragEvent, type: string) => {
+  const onDragStart = (e: React.DragEvent, type: string, label: string) => {
     e.dataTransfer.setData('component-type', type);
+    e.dataTransfer.setData('component-label', label);
   };
 
   return (
@@ -17,15 +18,25 @@ const ComponentPalette: React.FC = () => {
         <div
           key={c.type}
           draggable
-          onDragStart={e => onDragStart(e, c.type)}
+          onDragStart={e => onDragStart(e, c.type, c.label)}
           style={{
-            margin: '8px 0',
-            padding: '8px 12px',
-            background: '#f5f5f5',
-            borderRadius: 4,
-            cursor: 'grab',
-            textAlign: 'center',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+            ...(c.type === 'text' ? {
+              margin: '8px 0',
+              padding: '4px 0',
+              color: '#333',
+              fontSize: '14px',
+              cursor: 'grab',
+              textAlign: 'center'
+            } : {
+              // 按钮组件：有外框背景
+              margin: '8px 0',
+              padding: '8px 12px',
+              background: '#f5f5f5',
+              borderRadius: 4,
+              cursor: 'grab',
+              textAlign: 'center',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+            })
           }}
         >
           {c.label}
